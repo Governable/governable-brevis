@@ -12,7 +12,7 @@ func TestCircuit(t *testing.T) {
 	app, err := sdk.NewBrevisApp()
 	check(err)
 
-	contractAddress := common.HexToAddress("0xc00e94cb662c3520282e6f5717214004a7f26888")
+	contractAddress := common.HexToAddress("0xc944E90C64B2c07662A292be6244BDf05Cda44a7")
 	
 	app.AddStorage(sdk.StorageData{
 		BlockNum: big.NewInt(17800140),

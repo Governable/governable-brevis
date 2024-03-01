@@ -6,6 +6,7 @@ import (
 	"github.com/brevis-network/brevis-quickstart/age"
 	"github.com/brevis-network/brevis-sdk/sdk"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 	"math/big"
 	"path/filepath"
 )
@@ -14,7 +15,7 @@ var mode = flag.String("mode", "", "compile or prove")
 var outDir = flag.String("out", "$HOME/circuitOut/myBrevisApp", "compilation output dir")
 var srsDir = flag.String("srs", "$HOME/kzgsrs", "where to cache kzg srs")
 var slotNum = flag.String("slot", "", "slot to lookup")
-var contractAddress = common.HexToAddress("0xc00e94cb662c3520282e6f5717214004a7f26888")
+var contractAddress = common.HexToAddress("0xc944e90c64b2c07662a292be6244bdf05cda44a7")
 
 func main() {
 	flag.Parse()
@@ -34,10 +35,10 @@ func compile() {
 	check(err)
 	
 	app.AddStorage(sdk.StorageData{
-		BlockNum: big.NewInt(17800140),
+		BlockNum: big.NewInt(19341097),
 		Address: contractAddress,
-		Key: common.HexToHash("0xc2679997147cc711ecb6f1a090ddd97a89dfba7e3a04a3fb325563573f6fed21"),
-		Value: common.HexToHash("0x000000000000000000000000000000000000000000000001397f97d8b255ec3a"),
+		Key: common.BytesToHash(crypto.Keccak256(common.HexToHash("0x55ccb1b16b10b19d498a335426da71059f3255a84a320fe81c2a761e2cc095d0").Bytes())),
+		Value: common.HexToHash("0x252248DEB6E6940000"),
 	})
 	appCircuit := &age.AppCircuit{}
 
@@ -88,10 +89,10 @@ func prove() {
 	fmt.Println(common.HexToHash(*slotNum))
 
 	app.AddStorage(sdk.StorageData{
-		BlockNum: big.NewInt(17800140), //17800140
+		BlockNum: big.NewInt(19341097), //17800140
 		Address: contractAddress,
-		Key: common.HexToHash(*slotNum),
-		Value: common.HexToHash("0x000000000000000000000000000000000000000000000001397f97d8b255ec3a"),
+		Key: common.BytesToHash(crypto.Keccak256(common.HexToHash("0x55ccb1b16b10b19d498a335426da71059f3255a84a320fe81c2a761e2cc095d0").Bytes())),
+		Value: common.HexToHash("0x252248DEB6E6940000"),
 	})
 
 	appCircuit := &age.AppCircuit{}
