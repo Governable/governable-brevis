@@ -1,21 +1,20 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"github.com/brevis-network/brevis-quickstart/age"
 	"github.com/brevis-network/brevis-sdk/sdk"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/ethclient"
+	"math/big"
 	"path/filepath"
 )
 
 var mode = flag.String("mode", "", "compile or prove")
 var outDir = flag.String("out", "$HOME/circuitOut/myBrevisApp", "compilation output dir")
 var srsDir = flag.String("srs", "$HOME/kzgsrs", "where to cache kzg srs")
-var txHash = flag.String("tx", "", "tx hash to prove")
+var slotNum = flag.String("slot", "", "slot to lookup")
+var contractAddress = common.HexToAddress("0xc00e94cb662c3520282e6f5717214004a7f26888")
 
 func main() {
 	flag.Parse()
@@ -33,29 +32,12 @@ func compile() {
 	// This first part is copied from app/circuit_test.go. We added the source data, then we generated the circuit input.
 	app, err := sdk.NewBrevisApp()
 	check(err)
-	txHash := common.HexToHash(
-		"0x6dc75e61220cc775aafa17796c20e49ac08030020fce710e3e546aa4e003454c")
-
-	ec, err := ethclient.Dial("<your-eth-rpc>")
-	check(err)
-	tx, _, err := ec.TransactionByHash(context.Background(), txHash)
-	check(err)
-	receipt, err := ec.TransactionReceipt(context.Background(), txHash)
-	check(err)
-	from, err := types.Sender(types.NewLondonSigner(tx.ChainId()), tx)
-	check(err)
-
-	app.AddTransaction(sdk.TransactionData{
-		Hash:                txHash,
-		ChainId:             tx.ChainId(),
-		BlockNum:            receipt.BlockNumber,
-		Nonce:               tx.Nonce(),
-		GasTipCapOrGasPrice: tx.GasTipCap(),
-		GasFeeCap:           tx.GasFeeCap(),
-		GasLimit:            tx.Gas(),
-		From:                from,
-		To:                  *tx.To(),
-		Value:               tx.Value(),
+	
+	app.AddStorage(sdk.StorageData{
+		BlockNum: big.NewInt(17800140),
+		Address: contractAddress,
+		Key: common.HexToHash("0xc2679997147cc711ecb6f1a090ddd97a89dfba7e3a04a3fb325563573f6fed21"),
+		Value: common.HexToHash("0x000000000000000000000000000000000000000000000001397f97d8b255ec3a"),
 	})
 	appCircuit := &age.AppCircuit{}
 
@@ -86,8 +68,8 @@ func compile() {
 }
 
 func prove() {
-	if len(*txHash) == 0 {
-		panic("-tx is required")
+	if len(*slotNum) == 0 {
+		panic("-slot is required")
 	}
 
 	// Loading the previous compile result into memory
@@ -102,26 +84,14 @@ func prove() {
 	// Query the user specified tx
 	app, err := sdk.NewBrevisApp()
 	check(err)
-	ec, err := ethclient.Dial("<your-eth-rpc>")
-	check(err)
-	tx, _, err := ec.TransactionByHash(context.Background(), common.HexToHash(*txHash))
-	check(err)
-	receipt, err := ec.TransactionReceipt(context.Background(), common.HexToHash(*txHash))
-	check(err)
-	from, err := types.Sender(types.NewLondonSigner(tx.ChainId()), tx)
-	check(err)
 
-	app.AddTransaction(sdk.TransactionData{
-		Hash:                common.HexToHash(*txHash),
-		ChainId:             tx.ChainId(),
-		BlockNum:            receipt.BlockNumber,
-		Nonce:               tx.Nonce(),
-		GasTipCapOrGasPrice: tx.GasTipCap(),
-		GasFeeCap:           tx.GasFeeCap(),
-		GasLimit:            tx.Gas(),
-		From:                from,
-		To:                  *tx.To(),
-		Value:               tx.Value(),
+	fmt.Println(common.HexToHash(*slotNum))
+
+	app.AddStorage(sdk.StorageData{
+		BlockNum: big.NewInt(17800140), //17800140
+		Address: contractAddress,
+		Key: common.HexToHash(*slotNum),
+		Value: common.HexToHash("0x000000000000000000000000000000000000000000000001397f97d8b255ec3a"),
 	})
 
 	appCircuit := &age.AppCircuit{}
@@ -135,7 +105,7 @@ func prove() {
 	check(err)
 	proof, err := sdk.Prove(compiledCircuit, pk, witness)
 	check(err)
-	err = sdk.WriteTo(proof, filepath.Join(*outDir, "proof-"+*txHash))
+	err = sdk.WriteTo(proof, filepath.Join(*outDir, "proof-"+*slotNum))
 	check(err)
 
 	// Test verifying the proof we just generated
@@ -157,14 +127,14 @@ func prove() {
 	err = app.SubmitProof(proof)
 	check(err)
 
-	// Poll Brevis gateway for query status till the final proof is submitted
-	// on-chain by Brevis and your contract is called
-	fmt.Println(">> Waiting for final proof generation and submission")
-	submitTx, err := app.WaitFinalProofSubmitted(context.Background())
-	check(err)
-	fmt.Printf(">> Final proof submitted: tx hash %s\n", submitTx)
+	// // Poll Brevis gateway for query status till the final proof is submitted
+	// // on-chain by Brevis and your contract is called
+	// fmt.Println(">> Waiting for final proof generation and submission")
+	// submitTx, err := app.WaitFinalProofSubmitted(context.Background())
+	// check(err)
+	// fmt.Printf(">> Final proof submitted: tx hash %s\n", submitTx)
 
-	// [Don't forget to make the transaction that pays the fee by calling Brevis.sendRequest]
+	// // [Don't forget to make the transaction that pays the fee by calling Brevis.sendRequest]
 }
 
 func check(err error) {

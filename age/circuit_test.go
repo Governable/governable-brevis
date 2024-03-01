@@ -1,41 +1,23 @@
 package age
 
 import (
-	"context"
 	"github.com/brevis-network/brevis-sdk/sdk"
 	"github.com/brevis-network/brevis-sdk/test"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/ethclient"
+	"math/big"
 	"testing"
 )
 
 func TestCircuit(t *testing.T) {
 	app, err := sdk.NewBrevisApp()
 	check(err)
-	ec, err := ethclient.Dial("https://eth-mainnet.nodereal.io/v1/0af795b55d124a61b86836461ece1dee")
-	check(err)
 
-	txHash := common.HexToHash(
-		"8b805e46758497c6b32d0bf3cad3b3b435afeb0adb649857f24e424f75b79e46")
-	tx, _, err := ec.TransactionByHash(context.Background(), txHash)
-	check(err)
-	receipt, err := ec.TransactionReceipt(context.Background(), txHash)
-	check(err)
-	from, err := types.Sender(types.NewLondonSigner(tx.ChainId()), tx)
-	check(err)
-
-	app.AddTransaction(sdk.TransactionData{
-		Hash:                 txHash,
-		ChainId:              tx.ChainId(),
-		BlockNum:             receipt.BlockNumber,
-		Nonce:                tx.Nonce(),
-		GasTipCapOrGasPrice:  tx.GasTipCap(),
-		GasFeeCap:            tx.GasFeeCap(),
-		GasLimit:             tx.Gas(),
-		From:                 from,
-		To:                   *tx.To(),
-		Value:                tx.Value(),
+	contractAddress := common.HexToAddress("0xc00e94cb662c3520282e6f5717214004a7f26888")
+	
+	app.AddStorage(sdk.StorageData{
+		BlockNum: big.NewInt(17800140),
+		Address: contractAddress,
+		Key: common.HexToHash("0xc2679997147cc711ecb6f1a090ddd97a89dfba7e3a04a3fb325563573f6fed21"),
 	})
 
 	guest := &AppCircuit{}
