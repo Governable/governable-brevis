@@ -15,7 +15,7 @@ func TestCircuit(t *testing.T) {
 	contractAddress := common.HexToAddress("0xc944E90C64B2c07662A292be6244BDf05Cda44a7")
 	
 	app.AddStorage(sdk.StorageData{
-		BlockNum: big.NewInt(17800140),
+		BlockNum: big.NewInt(17800141),
 		Address: contractAddress,
 		Key: common.HexToHash("0xc2679997147cc711ecb6f1a090ddd97a89dfba7e3a04a3fb325563573f6fed21"),
 	})

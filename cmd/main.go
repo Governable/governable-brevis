@@ -1,12 +1,13 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"github.com/brevis-network/brevis-quickstart/age"
 	"github.com/brevis-network/brevis-sdk/sdk"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/ethclient"
 	"math/big"
 	"path/filepath"
 )
@@ -15,6 +16,7 @@ var mode = flag.String("mode", "", "compile or prove")
 var outDir = flag.String("out", "$HOME/circuitOut/myBrevisApp", "compilation output dir")
 var srsDir = flag.String("srs", "$HOME/kzgsrs", "where to cache kzg srs")
 var slotNum = flag.String("slot", "", "slot to lookup")
+var blockNum = flag.Int64("block", 0, "block number to lookup")
 var contractAddress = common.HexToAddress("0xc944e90c64b2c07662a292be6244bdf05cda44a7")
 
 func main() {
@@ -35,10 +37,10 @@ func compile() {
 	check(err)
 	
 	app.AddStorage(sdk.StorageData{
-		BlockNum: big.NewInt(19341097),
+		BlockNum: big.NewInt(19341099),
 		Address: contractAddress,
-		Key: common.BytesToHash(crypto.Keccak256(common.HexToHash("0x55ccb1b16b10b19d498a335426da71059f3255a84a320fe81c2a761e2cc095d0").Bytes())),
-		Value: common.HexToHash("0x252248DEB6E6940000"),
+		Key: common.HexToHash("0x55ccb1b16b10b19d498a335426da71059f3255a84a320fe81c2a761e2cc095d0"),
+		Value: common.HexToHash("0x0000000000000000000000000000000000000000000000252248deb6e6940000"),
 	})
 	appCircuit := &age.AppCircuit{}
 
@@ -73,6 +75,10 @@ func prove() {
 		panic("-slot is required")
 	}
 
+	if *blockNum == 0 {
+		panic("-block is required")
+	}
+
 	// Loading the previous compile result into memory
 	fmt.Println(">> Reading circuit, pk, and vk from disk")
 	compiledCircuit, err := sdk.ReadCircuitFrom(filepath.Join(*outDir, "compiledCircuit"))
@@ -86,13 +92,15 @@ func prove() {
 	app, err := sdk.NewBrevisApp()
 	check(err)
 
-	fmt.Println(common.HexToHash(*slotNum))
+	ec, err := ethclient.Dial("<your-eth-rpc>")
+	slotValue, err := ec.StorageAt(context.Background(), contractAddress, common.HexToHash(*slotNum), big.NewInt(*blockNum))
+	check(err)
 
 	app.AddStorage(sdk.StorageData{
-		BlockNum: big.NewInt(19341097), //17800140
+		BlockNum: big.NewInt(*blockNum), //17800140
 		Address: contractAddress,
-		Key: common.BytesToHash(crypto.Keccak256(common.HexToHash("0x55ccb1b16b10b19d498a335426da71059f3255a84a320fe81c2a761e2cc095d0").Bytes())),
-		Value: common.HexToHash("0x252248DEB6E6940000"),
+		Key: common.HexToHash(*slotNum),
+		Value: common.BytesToHash(slotValue),
 	})
 
 	appCircuit := &age.AppCircuit{}
@@ -114,8 +122,8 @@ func prove() {
 	check(err)
 
 	fmt.Println(">> Initiating Brevis request")
-	appContract := common.HexToAddress("0x73090023b8D731c4e87B3Ce9Ac4A9F4837b4C1bd")
-	refundee := common.HexToAddress("0x164Ef8f77e1C88Fb2C724D3755488bE4a3ba4342")
+	appContract := common.HexToAddress("0xb0DA53679B6e7aB6c7c21e92B02abFd18BF627EA")
+	refundee := common.HexToAddress("0xb0DA53679B6e7aB6c7c21e92B02abFd18BF627EA")
 
 	calldata, requestId, feeValue, err := app.PrepareRequest(vk, 1, 11155111, refundee, appContract)
 	check(err)
